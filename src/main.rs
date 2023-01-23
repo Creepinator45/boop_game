@@ -9,15 +9,15 @@ enum Size {
 #[derive(PartialEq)]
 #[derive(Debug)]
 struct Piece {
-    owner: Player,
+    owner: usize,
     size: Size,
 }
 
 #[derive(PartialEq)]
 #[derive(Debug)]
-enum Player {
-    Player1,
-    Player2,
+struct Player {
+    name: String,
+    piece_pool: Vec<Piece>
 }
 
 #[derive(PartialEq)]
@@ -30,7 +30,8 @@ enum Cell {
 #[derive(Debug)]
 struct GameState {
     game_board: [[Cell; 6]; 6],
-    turn_player: Player
+    turn_order: Vec<Player>,
+    turn_count: u32,
 }
 
 impl GameState {
@@ -80,16 +81,16 @@ impl GameState {
     }
 
     fn check_board(&self) {
-        for row_index in 1..5 {
-            for column_index in 1..5 {
+        for row_index in 1..self.game_board.len()-1 {
+            for column_index in 1..self.game_board[row_index].len() {
                 let _ = dbg!(&self.check_cell((row_index, column_index)));
             }
         }
     }
 }
 
-fn main() {
-    let mut game_state = GameState {
+fn init() -> GameState {
+    GameState {
         game_board: [
             [Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
             [Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
@@ -98,12 +99,38 @@ fn main() {
             [Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
             [Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty, Cell::Empty],
         ],
-        turn_player: Player::Player1
-    };
+        turn_order: vec![
+        Player{name: String::from("Player 1"), piece_pool: 
+            vec![Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small}, 
+                 Piece{owner: 0, size: Size::Small},
+        ]},
+        Player{name: String::from("Player 2"), piece_pool: 
+            vec![Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small}, 
+                 Piece{owner: 1, size: Size::Small},
+        ]},
+        ],
+        turn_count: 0,
+    }
+}
 
-    game_state.game_board[1][1] = Cell::Piece(Piece{owner: Player::Player1, size: Size::Big});
-    game_state.game_board[2][0] = Cell::Piece(Piece{owner: Player::Player1, size: Size::Small});
-    game_state.game_board[0][2] = Cell::Piece(Piece{owner: Player::Player1, size: Size::Small});
+fn main() {
+    let mut game_state = init();
+
+    game_state.game_board[1][1] = Cell::Piece(Piece{owner: 0, size: Size::Big});
+    game_state.game_board[2][0] = Cell::Piece(Piece{owner: 0, size: Size::Small});
+    game_state.game_board[0][2] = Cell::Piece(Piece{owner: 0, size: Size::Small});
 
     game_state.check_board();
 }
