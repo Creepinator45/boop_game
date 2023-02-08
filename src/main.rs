@@ -1,3 +1,5 @@
+use std::result;
+
 
 #[derive(PartialEq)]
 #[derive(Debug)]
@@ -43,7 +45,8 @@ impl GameState {
             }
             Cell::Piece(Piece{owner:current_owner, size:current_size}) => {
                 let mut matches: Vec<&str> = Vec::new();
-
+                println!("{:?}", &current_owner);
+                println!("{:?}", &current_size);
                 //horizontal check
                 if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1] {
                     if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1] {
@@ -76,15 +79,21 @@ impl GameState {
     fn check_board(&self) {
         for row_index in 1..self.game_board.len()-1 {
             for column_index in 1..self.game_board[row_index].len() {
-                dbg!(&self.game_board[row_index][column_index]);
                 let _ = dbg!(&self.check_cell((row_index, column_index)));
             }
         }
     }
 
-    fn place_piece(&mut self, coordinate: (usize, usize), size: Size) {
+    fn place_piece(&mut self, coordinate: (usize, usize), size: Size) -> Result<(), &'static str>{
         let player_index = dbg!(self.turn_count % self.turn_order.len());
+        if self.game_board[coordinate.0][coordinate.1] == Cell::Empty{
+            self.game_board[coordinate.0][coordinate.1] = Cell::Piece(Piece { owner: (player_index), size: (size) });
+        }
+        else {
+            return Result::Err("Attempted Illegal Move");
+        };
 
+        Result::Ok(())
     }
 }
 
@@ -127,9 +136,12 @@ fn init() -> GameState {
 fn main() {
     let mut game_state = init();
 
-    game_state.game_board[1][1] = Cell::Piece(Piece{owner: 0, size: Size::Big});
-    game_state.game_board[2][0] = Cell::Piece(Piece{owner: 0, size: Size::Small});
+    let _ = game_state.place_piece((1,1), Size::Big);
+
+    game_state.game_board[2][0] = Cell::Piece(Piece{owner: 1, size: Size::Small});
     game_state.game_board[0][2] = Cell::Piece(Piece{owner: 0, size: Size::Small});
 
-    game_state.check_board();
+    let _ = game_state.place_piece((2,0), Size::Big);
+
+    dbg!(game_state.check_board());
 }
