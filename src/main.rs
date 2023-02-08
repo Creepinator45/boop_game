@@ -31,7 +31,7 @@ enum Cell {
 struct GameState {
     game_board: [[Cell; 6]; 6],
     turn_order: Vec<Player>,
-    turn_count: u32,
+    turn_count: usize,
 }
 
 impl GameState {
@@ -39,39 +39,32 @@ impl GameState {
     fn check_cell(&self, coordinate: (usize, usize)) -> Vec<&str> {
         match &self.game_board[coordinate.0][coordinate.1] {
             Cell::Empty => {
-                println!("Empty Cell");
                 Vec::new()
             }
             Cell::Piece(Piece{owner:current_owner, size:current_size}) => {
-                println!("{:?}, {:?}", current_owner, current_size);
-
                 let mut matches: Vec<&str> = Vec::new();
 
                 //horizontal check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0+1][coordinate.1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0-1][coordinate.1] {
-                        println!("Horizontal Match!");
+                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1] {
+                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1] {
                         matches.push("Horizontal");
                     }
                 }
                 //vertical check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0][coordinate.1+1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0][coordinate.1-1] {
-                        println!("Vertical Match!");
+                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0][coordinate.1+1] {
+                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0][coordinate.1-1] {
                         matches.push("Vertical");
                     }
                 }
                 //left diagonal check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0+1][coordinate.1+1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0-1][coordinate.1-1] {
-                        println!("Left Diagonal Match!");
+                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1+1] {
+                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1-1] {
                         matches.push("Left Diagonal");
                     }
                 }
                 //right diagonal check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0+1][coordinate.1-1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = &self.game_board[coordinate.0-1][coordinate.1+1] {
-                        println!("Right Diagonal Match!");
+                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1-1] {
+                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1+1] {
                         matches.push("Right Diagonal");
                     }
                 }
@@ -83,9 +76,15 @@ impl GameState {
     fn check_board(&self) {
         for row_index in 1..self.game_board.len()-1 {
             for column_index in 1..self.game_board[row_index].len() {
+                dbg!(&self.game_board[row_index][column_index]);
                 let _ = dbg!(&self.check_cell((row_index, column_index)));
             }
         }
+    }
+
+    fn place_piece(&mut self, coordinate: (usize, usize), size: Size) {
+        let player_index = dbg!(self.turn_count % self.turn_order.len());
+
     }
 }
 
