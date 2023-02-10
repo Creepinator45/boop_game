@@ -113,15 +113,13 @@ impl GameState {
         if coordinate.1 > self.game_board[coordinate.0].len() {
             return Result::Err("Y Coordinate Out of Bounds");
         }
+        if self.game_board[coordinate.0][coordinate.1] != Cell::Empty {
+            return Result::Err("Attempted Illegal Move");
+        }
 
         let player_index = dbg!(self.turn_count % self.turn_order.len());
 
-        if self.game_board[coordinate.0][coordinate.1] == Cell::Empty{
-            self.game_board[coordinate.0][coordinate.1] = Cell::Piece(Piece { owner: (player_index), size: (size) });
-        }
-        else {
-            return Result::Err("Attempted Illegal Move");
-        };
+        self.game_board[coordinate.0][coordinate.1] = Cell::Piece(Piece { owner: (player_index), size: (size) });
 
         Result::Ok(())
     }
