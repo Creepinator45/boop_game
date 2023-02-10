@@ -46,10 +46,10 @@ impl GameState {
     fn check_cell(&self, coordinate: (usize, usize)) -> Result<Vec<MatchDir>, &'static str> {
 
         if coordinate.0 > self.game_board.len() {
-            return Result::Err("Index Out of Bounds");
+            return Result::Err("X Coordinate Out of Bounds");
         }
         if coordinate.1 > self.game_board[coordinate.0].len() {
-            return Result::Err("Index Out of Bounds");
+            return Result::Err("Y Coordinate Out of Bounds");
         }
 
         match &self.game_board[coordinate.0][coordinate.1] {
@@ -106,6 +106,14 @@ impl GameState {
     }
 
     fn place_piece(&mut self, coordinate: (usize, usize), size: Size) -> Result<(), &'static str>{
+
+        if coordinate.0 > self.game_board.len() {
+            return Result::Err("X Coordinate Out of Bounds");
+        }
+        if coordinate.1 > self.game_board[coordinate.0].len() {
+            return Result::Err("Y Coordinate Out of Bounds");
+        }
+
         let player_index = dbg!(self.turn_count % self.turn_order.len());
 
         if self.game_board[coordinate.0][coordinate.1] == Cell::Empty{
@@ -160,14 +168,11 @@ fn main() {
 
     let _ = game_state.place_piece((1,1), Size::Big);
 
-    game_state.game_board[2][0] = Cell::Piece(Piece{owner: 1, size: Size::Small});
+    game_state.game_board[2][0] = Cell::Piece(Piece{owner: 0, size: Size::Small});
     game_state.game_board[0][2] = Cell::Piece(Piece{owner: 0, size: Size::Small});
 
     let _ = game_state.place_piece((2,0), Size::Big);
 
     dbg!(game_state.check_board());
 
-    let _ = &game_state.game_board[9];
-
-    game_state.check_cell((9,9)).unwrap();
 }
