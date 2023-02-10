@@ -1,6 +1,3 @@
-use std::result;
-
-
 #[derive(PartialEq)]
 #[derive(Debug)]
 enum Size {
@@ -36,56 +33,81 @@ struct GameState {
     turn_count: usize,
 }
 
+#[derive(Debug)]
+enum MatchDir {
+    Horizontal,
+    Vertical,
+    LeftDiagonal,
+    RightDiagonal,
+}
+
 impl GameState {
 
-    fn check_cell(&self, coordinate: (usize, usize)) -> Vec<&str> {
+    fn check_cell(&self, coordinate: (usize, usize)) -> Result<Vec<MatchDir>, &'static str> {
+
+        if coordinate.0 > self.game_board.len() {
+            return Result::Err("Index Out of Bounds");
+        }
+        if coordinate.1 > self.game_board[coordinate.0].len() {
+            return Result::Err("Index Out of Bounds");
+        }
+
         match &self.game_board[coordinate.0][coordinate.1] {
             Cell::Empty => {
-                Vec::new()
+                Result::Ok(Vec::new())
             }
-            Cell::Piece(Piece{owner:current_owner, size:current_size}) => {
-                let mut matches: Vec<&str> = Vec::new();
-                println!("{:?}", &current_owner);
-                println!("{:?}", &current_size);
+            Cell::Piece(Piece{owner:current_owner, size:_}) => {
+
+                let mut matches: Vec<MatchDir> = Vec::new();
+
                 //horizontal check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1] {
-                        matches.push("Horizontal");
+                if let Cell::Piece(Piece{owner:current_owner1, size:_}) = self.game_board[coordinate.0+1][coordinate.1] {
+                    if let Cell::Piece(Piece{owner:current_owner2, size:_}) = self.game_board[coordinate.0-1][coordinate.1] {
+                        if current_owner == &current_owner1 && &current_owner1 == &current_owner2 {
+                            matches.push(MatchDir::Horizontal);
+                        }
                     }
                 }
                 //vertical check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0][coordinate.1+1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0][coordinate.1-1] {
-                        matches.push("Vertical");
+                if let Cell::Piece(Piece{owner:current_owner1, size:_}) = self.game_board[coordinate.0][coordinate.1+1] {
+                    if let Cell::Piece(Piece{owner:current_owner2, size:_}) = self.game_board[coordinate.0][coordinate.1-1] {
+                        if current_owner == &current_owner1 && &current_owner1 == &current_owner2 {
+                            matches.push(MatchDir::Vertical);
+                        }
                     }
                 }
                 //left diagonal check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1+1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1-1] {
-                        matches.push("Left Diagonal");
+                if let Cell::Piece(Piece{owner:current_owner1, size:_}) = self.game_board[coordinate.0+1][coordinate.1+1] {
+                    if let Cell::Piece(Piece{owner:current_owner2, size:_}) = self.game_board[coordinate.0-1][coordinate.1-1] {
+                        if current_owner == &current_owner1 && &current_owner1 == &current_owner2 {
+                            matches.push(MatchDir::LeftDiagonal);
+                        }
                     }
                 }
                 //right diagonal check
-                if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0+1][coordinate.1-1] {
-                    if let Cell::Piece(Piece{owner:_current_owner, size:_}) = self.game_board[coordinate.0-1][coordinate.1+1] {
-                        matches.push("Right Diagonal");
+                if let Cell::Piece(Piece{owner:current_owner1, size:_}) = self.game_board[coordinate.0+1][coordinate.1-1] {
+                    if let Cell::Piece(Piece{owner:current_owner2, size:_}) = self.game_board[coordinate.0-1][coordinate.1+1] {
+                        if current_owner == &current_owner1 && &current_owner1 == &current_owner2 {
+                            matches.push(MatchDir::RightDiagonal);
+                        }
                     }
                 }
-                matches
+                Result::Ok(matches)
             }
         }
     }
 
     fn check_board(&self) {
         for row_index in 1..self.game_board.len()-1 {
-            for column_index in 1..self.game_board[row_index].len() {
-                let _ = dbg!(&self.check_cell((row_index, column_index)));
+            for column_index in 1..self.game_board[row_index].len()-1 {
+                let _ = dbg!(&self.check_cell((row_index, column_index)).unwrap());
             }
         }
     }
 
     fn place_piece(&mut self, coordinate: (usize, usize), size: Size) -> Result<(), &'static str>{
         let player_index = dbg!(self.turn_count % self.turn_order.len());
+
         if self.game_board[coordinate.0][coordinate.1] == Cell::Empty{
             self.game_board[coordinate.0][coordinate.1] = Cell::Piece(Piece { owner: (player_index), size: (size) });
         }
@@ -144,4 +166,8 @@ fn main() {
     let _ = game_state.place_piece((2,0), Size::Big);
 
     dbg!(game_state.check_board());
+
+    let _ = &game_state.game_board[9];
+
+    game_state.check_cell((9,9)).unwrap();
 }
