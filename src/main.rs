@@ -184,19 +184,18 @@ impl GameState {
             (1, 0),
         ];
         for d in dirs {
-            if self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] == Cell::Empty {
-                continue;
-            }
-            match self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] {
-                Cell::Piece(_) => continue,
-                Cell::OutOfBounds => {
-                    self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] = Cell::Empty;
-                }
-                Cell::Empty => {
-                    self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] =
-                        self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1].clone();
-
-                    self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] = Cell::Empty;
+            if let Cell::Piece(_) = self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] {
+                match self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] {
+                    Cell::Piece(_) => continue,
+                    Cell::OutOfBounds => {
+                        self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] = Cell::Empty;
+                    }
+                    Cell::Empty => {
+                        self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] =
+                            self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1].clone();
+    
+                        self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] = Cell::Empty;
+                    }
                 }
             }
         }
