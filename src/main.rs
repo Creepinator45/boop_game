@@ -261,6 +261,7 @@ impl GameState {
     }
 }
 
+
 fn init() -> GameState {
     GameState {
         game_board: [
