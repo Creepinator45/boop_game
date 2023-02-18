@@ -18,13 +18,14 @@ struct Player {
 
 #[derive(Clone, PartialEq, Debug)]
 enum Cell {
+    OutOfBounds,
     Empty,
     Piece(Piece),
 }
 
 #[derive(Debug)]
 struct GameState {
-    game_board: [[Cell; 6]; 6],
+    game_board: [[Cell; 10]; 10],
     turn_order: [Player; 2],
     turn_count: usize,
 }
@@ -39,14 +40,15 @@ enum MatchDir {
 
 impl GameState {
     fn check_cell(&self, coordinate: (usize, usize)) -> Result<Vec<MatchDir>, &'static str> {
-        if coordinate.0 > self.game_board.len() {
+        if coordinate.0 > 7 || coordinate.0 < 2 {
             return Result::Err("X Coordinate Out of Bounds");
         }
-        if coordinate.1 > self.game_board[coordinate.0].len() {
+        if coordinate.1 > 7 || coordinate.0 < 2 {
             return Result::Err("Y Coordinate Out of Bounds");
         }
 
         match &self.game_board[coordinate.0][coordinate.1] {
+            Cell::OutOfBounds => Result::Err("Placing in Null Cell"),
             Cell::Empty => Result::Ok(Vec::new()),
             Cell::Piece(Piece {
                 owner: current_owner,
@@ -124,8 +126,8 @@ impl GameState {
     }
 
     fn check_board(&self) {
-        for row_index in 1..self.game_board.len() - 1 {
-            for column_index in 1..self.game_board[row_index].len() - 1 {
+        for row_index in 2..7 {
+            for column_index in 2..7 {
                 let _ = dbg!(&self.check_cell((row_index, column_index)).unwrap());
             }
         }
@@ -134,12 +136,15 @@ impl GameState {
     fn place_piece(&mut self, coordinate: (usize, usize), size: Size) -> Result<(), &'static str> {
         let player_index = dbg!(self.turn_count % self.turn_order.len());
 
-        if coordinate.0 > self.game_board.len() {
+        let coordinate = (coordinate.0 + 2, coordinate.1 + 2);
+
+        if coordinate.0 > 7 || coordinate.0 < 2 {
             return Result::Err("X Coordinate Out of Bounds");
         }
-        if coordinate.1 > self.game_board[coordinate.0].len() {
+        if coordinate.1 > 7 || coordinate.0 < 2 {
             return Result::Err("Y Coordinate Out of Bounds");
         }
+
         if self.game_board[coordinate.0][coordinate.1] != Cell::Empty {
             return Result::Err("Placement Position Occupied");
         }
@@ -168,46 +173,32 @@ impl GameState {
             size: (size),
         });
 
-        match coordinate.0 {
-            0 => {todo!()}
-            6 => {todo!()}
-            2 => {todo!()}
-            5 => {todo!()}
-            _ => match coordinate.1 {
-                0 => {todo!()}
-                6 => {todo!()}
-                2 => {todo!()}
-                5 => {todo!()}
-                _ => {
-                    let dirs = [
-                        (0, 0),
-                        (0, 1),
-                        (0, 2),
-                        (1, 2),
-                        (2, 2),
-                        (2, 1),
-                        (2, 0),
-                        (1, 0),
-                    ];
-                    for d in dirs {
-                        if self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1]
-                            == Cell::Empty
-                        {
-                            continue;
-                        }
-                        if self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2]
-                            != Cell::Empty
-                        {
-                            continue;
-                        }
-
-                        self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] =
-                            self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1].clone();
-                        self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] =
-                            Cell::Empty;
-                    }
+        let dirs = [
+            (0, 0),
+            (0, 1),
+            (0, 2),
+            (1, 2),
+            (2, 2),
+            (2, 1),
+            (2, 0),
+            (1, 0),
+        ];
+        for d in dirs {
+            if self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] == Cell::Empty {
+                continue;
+            }
+            match self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] {
+                Cell::Piece(_) => continue,
+                Cell::OutOfBounds => {
+                    self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] = Cell::Empty;
                 }
-            },
+                Cell::Empty => {
+                    self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] =
+                        self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1].clone();
+
+                    self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] = Cell::Empty;
+                }
+            }
         }
         Result::Ok(())
     }
@@ -217,52 +208,124 @@ fn init() -> GameState {
     GameState {
         game_board: [
             [
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
             ],
             [
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
-                Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
             ],
             [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
             ],
             [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
             ],
             [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
             ],
             [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
                 Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+            ],
+            [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+            ],
+            [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::Empty,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+            ],
+            [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+            ],
+            [
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
+                Cell::OutOfBounds,
             ],
         ],
         turn_order: [
@@ -349,7 +412,6 @@ fn main() {
     let mut game_state = init();
 
     loop {
-
         let mut position_input = String::new();
 
         println!("Position:");
@@ -364,8 +426,6 @@ fn main() {
             .read_line(&mut size_input)
             .expect("Failed to read line");
 
-
         println!("You will attempt to place a {size_input} piece at {position_input}");
-
     }
 }
