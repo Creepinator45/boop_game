@@ -86,6 +86,53 @@ impl PiecePlacement {
 }
 
 impl GameState {
+
+    fn init() -> GameState {
+        GameState {
+            game_board: [
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
+                [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
+            ],
+            turn_order: [
+                Player {
+                    name: String::from("Player 1"),
+                    piece_pool: vec![
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                        Piece { owner: 0, size: Size::Small,},
+                    ],
+                },
+                Player {
+                    name: String::from("Player 2"),
+                    piece_pool: vec![
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                        Piece { owner: 1, size: Size::Small,},
+                    ],
+                },
+            ],
+            turn_count: 0,
+        }
+    }
+
     fn check_cell(&self, coordinate: Coordinate) -> Result<Vec<MatchDir>, &'static str> {
         if coordinate.x > 7 || coordinate.x < 2 {
             return Result::Err("X Coordinate Out of Bounds");
@@ -261,55 +308,8 @@ impl GameState {
     }
 }
 
-
-fn init() -> GameState {
-    GameState {
-        game_board: [
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::Empty,       Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
-            [ Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds, Cell::OutOfBounds,],
-        ],
-        turn_order: [
-            Player {
-                name: String::from("Player 1"),
-                piece_pool: vec![
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                    Piece { owner: 0, size: Size::Small,},
-                ],
-            },
-            Player {
-                name: String::from("Player 2"),
-                piece_pool: vec![
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                    Piece { owner: 1, size: Size::Small,},
-                ],
-            },
-        ],
-        turn_count: 0,
-    }
-}
-
 fn main() {
-    let mut game_state = init();
+    let mut game_state = GameState::init();
 
     loop {
         let player_move = PiecePlacement::ask_player().unwrap();
