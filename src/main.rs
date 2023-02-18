@@ -4,7 +4,7 @@ enum Size {
     Big,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 struct Piece {
     owner: usize,
     size: Size,
@@ -16,7 +16,7 @@ struct Player {
     piece_pool: Vec<Piece>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 enum Cell {
     Empty,
     Piece(Piece),
@@ -168,34 +168,47 @@ impl GameState {
             size: (size),
         });
 
-        for x in 0..2 {
-            match self.game_board.get(coordinate.0 - 1 + x) {
-                None => continue,
-                Some(bounce_cell_column) => {
-                    for y in 0..2 {
-                        match bounce_cell_column.get(coordinate.1 - 1 + x) {
-                            None => continue,
-                            Some(bounce_cell) if bounce_cell == &Cell::Empty => continue,
-                            Some(bounce_cell) => {
-                                match self.game_board.get(coordinate.0 - 2 + x * 2) {
-                                    None => continue,
-                                    Some(bounce_move_column) => {
-                                        match bounce_move_column.get(coordinate.1 - 2 + x * 2) {
-                                            None => continue,
-                                            Some(bounce_move) if bounce_move != &Cell::Empty => {
-                                                continue
-                                            }
-                                            Some(bounce_move) => {}
-                                        }
-                                    }
-                                }
-                            }
+        match coordinate.0 {
+            0 => {todo!()}
+            6 => {todo!()}
+            2 => {todo!()}
+            5 => {todo!()}
+            _ => match coordinate.1 {
+                0 => {todo!()}
+                6 => {todo!()}
+                2 => {todo!()}
+                5 => {todo!()}
+                _ => {
+                    let dirs = [
+                        (0, 0),
+                        (0, 1),
+                        (0, 2),
+                        (1, 2),
+                        (2, 2),
+                        (2, 1),
+                        (2, 0),
+                        (1, 0),
+                    ];
+                    for d in dirs {
+                        if self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1]
+                            == Cell::Empty
+                        {
+                            continue;
                         }
+                        if self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2]
+                            != Cell::Empty
+                        {
+                            continue;
+                        }
+
+                        self.game_board[coordinate.0 - 2 + d.0 * 2][coordinate.1 - 2 + d.1 * 2] =
+                            self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1].clone();
+                        self.game_board[coordinate.0 - 1 + d.0][coordinate.1 - 1 + d.1] =
+                            Cell::Empty;
                     }
                 }
-            }
+            },
         }
-
         Result::Ok(())
     }
 }
@@ -335,18 +348,24 @@ fn init() -> GameState {
 fn main() {
     let mut game_state = init();
 
-    let _ = game_state.place_piece((1, 1), Size::Small).unwrap();
+    loop {
 
-    game_state.game_board[2][0] = Cell::Piece(Piece {
-        owner: 0,
-        size: Size::Small,
-    });
-    game_state.game_board[0][2] = Cell::Piece(Piece {
-        owner: 0,
-        size: Size::Small,
-    });
+        let mut position_input = String::new();
 
-    let _ = game_state.place_piece((2, 2), Size::Small).unwrap();
+        println!("Position:");
+        std::io::stdin()
+            .read_line(&mut position_input)
+            .expect("Failed to read line");
 
-    dbg!(game_state.check_board());
+        let mut size_input = String::new();
+
+        println!("Size:");
+        std::io::stdin()
+            .read_line(&mut size_input)
+            .expect("Failed to read line");
+
+
+        println!("You will attempt to place a {size_input} piece at {position_input}");
+
+    }
 }
