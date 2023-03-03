@@ -46,7 +46,7 @@ struct PiecePlacement {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct ThreeInRow (Coordinate,Coordinate,Coordinate);
+struct ThreeInRow(Coordinate, Coordinate, Coordinate);
 
 impl std::str::FromStr for Coordinate {
     type Err = ParseCoordinateError;
@@ -56,7 +56,10 @@ impl std::str::FromStr for Coordinate {
         let x_fromstr = x.parse::<usize>().map_err(|_| ParseCoordinateError)?;
         let y_fromstr = y.parse::<usize>().map_err(|_| ParseCoordinateError)?;
 
-        Ok(Coordinate { x: x_fromstr, y: y_fromstr })
+        Ok(Coordinate {
+            x: x_fromstr,
+            y: y_fromstr,
+        })
     }
 }
 
@@ -69,13 +72,13 @@ impl PiecePlacement {
             .read_line(&mut position_input)
             .expect("Failed to read line");
 
-/*        let mut size_input = String::new();
+        /*        let mut size_input = String::new();
 
-        println!("Size:");
-        std::io::stdin()
-            .read_line(&mut size_input)
-            .expect("Failed to read line");
- */
+               println!("Size:");
+               std::io::stdin()
+                   .read_line(&mut size_input)
+                   .expect("Failed to read line");
+        */
         let move_coordinate = position_input.trim().parse()?;
 
         Result::Ok(PiecePlacement {
@@ -131,12 +134,6 @@ impl GameState {
             ],
             turn_count: 0,
         }
-    }
-
-    fn upgrade(&mut self, coordinates: &ThreeInRow) {
-        println!("{:?}", coordinates);
-        
-        self.game_board[coordinates.0.x][coordinates.0.y] = Cell::Empty;
     }
 
     fn display(&self) {
@@ -224,7 +221,20 @@ impl GameState {
                             if current_owner == &current_owner1
                                 && &current_owner1 == &current_owner2
                             {
-                                matches.push(ThreeInRow(Coordinate { x: coordinate.x - 1 + d.x, y: coordinate.y - 1 + d.y }, Coordinate { x: coordinate.x, y: coordinate.y }, Coordinate { x: coordinate.x + 1 - d.x, y: coordinate.y + 1 - d.y }));
+                                matches.push(ThreeInRow(
+                                    Coordinate {
+                                        x: coordinate.x - 1 + d.x,
+                                        y: coordinate.y - 1 + d.y,
+                                    },
+                                    Coordinate {
+                                        x: coordinate.x,
+                                        y: coordinate.y,
+                                    },
+                                    Coordinate {
+                                        x: coordinate.x + 1 - d.x,
+                                        y: coordinate.y + 1 - d.y,
+                                    },
+                                ));
                             }
                         }
                     }
@@ -234,45 +244,81 @@ impl GameState {
         }
     }
 
-    fn check_board(&mut self){
+    fn check_board(&mut self, constraining_coordinate: Option<Coordinate>) {
         let mut matches = Vec::new();
         for row_index in 2..8 {
             for column_index in 2..8 {
-                matches.extend(self.check_cell(Coordinate { x: row_index, y: column_index, }).unwrap())
+                matches.extend(
+                    self.check_cell(Coordinate {
+                        x: row_index,
+                        y: column_index,
+                    })
+                    .unwrap(),
+                )
             }
         }
-        match matches.len() {
+
+        let mut constrained_matches: Vec<ThreeInRow> = Vec::new();
+        match constraining_coordinate {
+            None => constrained_matches = matches,
+            Some(constraining_coordinate) => {
+                for m in matches {
+                    let ThreeInRow(c1, c2, c3) = m;
+                    if c1 == constraining_coordinate
+                        || c2 == constraining_coordinate
+                        || c3 == constraining_coordinate
+                    {
+                        constrained_matches.push(m.clone())
+                    }
+                }
+            }
+        }
+        match constrained_matches.len() {
             0 => return,
-            1 => self.upgrade(&matches[0]),
+            1 => match &self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] {
+                Cell::Piece(piece) => {
+                    self.turn_order[piece.owner].piece_pool.extend([
+                        Piece {
+                            owner: piece.owner,
+                            size: Size::Big,
+                        },
+                        Piece {
+                            owner: piece.owner,
+                            size: Size::Big,
+                        },
+                        Piece {
+                            owner: piece.owner,
+                            size: Size::Big,
+                        },
+                    ]);
+                    
+                    self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] = Cell::Empty;
+                    self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] = Cell::Empty;
+                    self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] = Cell::Empty;
+                }
+                _ => panic!("match coordinate not a piece"),
+            },
             _ => {
                 self.display();
                 let mut position_input = String::new();
 
-                println!("Select Isolating Piece");
+                println!("Select constraining Piece");
                 std::io::stdin()
                     .read_line(&mut position_input)
                     .expect("Failed to read line");
 
-                let isolating_coordinate:Coordinate = match position_input.trim().parse() {
+                let constraining_coordinate: Coordinate = match position_input.trim().parse() {
                     Result::Ok(ok) => ok,
                     Result::Err(_) => {
                         println!("Please input valid position");
-                        Coordinate{ x: 99, y: 99}}
-                };
-                let isolating_coordinate = Coordinate { x: isolating_coordinate.x + 2, y: isolating_coordinate.y + 2 };
-                let mut isolated_matches: Vec<ThreeInRow> = Vec::new(); 
-                for m in matches {
-                    let ThreeInRow(c1, c2, c3) = m;
-                    if c1 == isolating_coordinate || c2 == isolating_coordinate || c3 == isolating_coordinate {
-                        isolated_matches.push(m.clone())
+                        Coordinate { x: 99, y: 99 }
                     }
-                }
-                match isolated_matches.len() {
-                    0 => println!("Please select a coordinate that's part of exactly 1 threeinrow"),
-                    1 => self.upgrade(&isolated_matches[0]),
-                    _ => println!("Please select a coordinate that's part of exactly 1 threeinrow")
-                }
-                self.check_board();
+                };
+                let constraining_coordinate = Coordinate {
+                    x: constraining_coordinate.x + 2,
+                    y: constraining_coordinate.y + 2,
+                };
+                self.check_board(Some(constraining_coordinate));
             }
         }
     }
@@ -322,16 +368,16 @@ impl GameState {
 
         //Bounce Adjacent Pieces
         let dirs = [
-            Coordinate{x:0, y:0},
-            Coordinate{x:0, y:1},
-            Coordinate{x:0, y:2},
-            Coordinate{x:1, y:2},
-            Coordinate{x:2, y:2},
-            Coordinate{x:2, y:1},
-            Coordinate{x:2, y:0},
-            Coordinate{x:1, y:0},
+            Coordinate { x: 0, y: 0 },
+            Coordinate { x: 0, y: 1 },
+            Coordinate { x: 0, y: 2 },
+            Coordinate { x: 1, y: 2 },
+            Coordinate { x: 2, y: 2 },
+            Coordinate { x: 2, y: 1 },
+            Coordinate { x: 2, y: 0 },
+            Coordinate { x: 1, y: 0 },
         ];
-/*         for d in dirs {
+        /*         for d in dirs {
             if let Cell::Piece(piece) =
                 &self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y]
             {
@@ -356,8 +402,6 @@ impl GameState {
     }
 }
 
-
-
 fn main() {
     let mut game_state = GameState::init();
     game_state.display();
@@ -367,7 +411,7 @@ fn main() {
         println!("You will attempt to make move {:?}", player_move);
 
         game_state.place_piece(player_move).unwrap();
-        game_state.check_board();
+        game_state.check_board(None);
         game_state.turn_count += 1;
 
         game_state.display();
