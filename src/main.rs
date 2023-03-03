@@ -2,6 +2,12 @@
 struct ParseCoordinateError;
 #[derive(Debug)]
 struct ParseSizeError;
+#[derive(Debug)]
+enum ParsePiecePlacementError {
+    ParsePiecePlacementError,
+    ParseCoordinateError(ParseCoordinateError),
+    ParseSizeError(ParseSizeError),
+}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum Size {
@@ -49,14 +55,15 @@ struct PiecePlacement {
 
 #[derive(Debug, PartialEq, Clone)]
 struct ThreeInRow(Coordinate, Coordinate, Coordinate);
+
 impl std::str::FromStr for Size {
     type Err = ParseSizeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "s" | "small" => Ok(Size::Small),
-            "b" | "big"=> Ok(Size::Big),
-            _ => Err(ParseSizeError)
+            "b" | "big" => Ok(Size::Big),
+            _ => Err(ParseSizeError),
         }
     }
 }
@@ -74,29 +81,38 @@ impl std::str::FromStr for Coordinate {
         })
     }
 }
+impl std::str::FromStr for PiecePlacement {
+    type Err = ParsePiecePlacementError;
 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (size, coordinate) = s
+            .split_once(",")
+            .ok_or(ParsePiecePlacementError::ParseSizeError(ParseSizeError))?;
+        let size_fromstr = size
+            .parse::<Size>()
+            .map_err(|_| ParsePiecePlacementError::ParseCoordinateError(ParseCoordinateError))?;
+        let coordinate_fromstr = coordinate
+            .parse::<Coordinate>()
+            .map_err(|_| ParsePiecePlacementError::ParsePiecePlacementError)?;
+
+        Ok(PiecePlacement {
+            coordinate: coordinate_fromstr,
+            size: size_fromstr,
+        })
+    }
+}
 impl PiecePlacement {
-    fn ask_player() -> Result<PiecePlacement, ParseCoordinateError> {
-        let mut position_input = String::new();
+    fn ask_player(player_name: &str) -> Result<PiecePlacement, ParsePiecePlacementError> {
+        let mut input = String::new();
 
-        println!("Position");
+        println!("{} to move:", player_name);
         std::io::stdin()
-            .read_line(&mut position_input)
+            .read_line(&mut input)
             .expect("Failed to read line");
 
-        /*        let mut size_input = String::new();
+        let piece_placement = input.trim().parse()?;
 
-               println!("Size:");
-               std::io::stdin()
-                   .read_line(&mut size_input)
-                   .expect("Failed to read line");
-        */
-        let move_coordinate = position_input.trim().parse()?;
-
-        Result::Ok(PiecePlacement {
-            coordinate: move_coordinate,
-            size: Size::Small,
-        })
+        Result::Ok(piece_placement)
     }
 }
 
@@ -303,10 +319,13 @@ impl GameState {
                             size: Size::Big,
                         },
                     ]);
-                    
-                    self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] = Cell::Empty;
-                    self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] = Cell::Empty;
-                    self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] = Cell::Empty;
+
+                    self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] =
+                        Cell::Empty;
+                    self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] =
+                        Cell::Empty;
+                    self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] =
+                        Cell::Empty;
                 }
                 _ => panic!("match coordinate not a piece"),
             },
@@ -389,7 +408,7 @@ impl GameState {
             Coordinate { x: 2, y: 0 },
             Coordinate { x: 1, y: 0 },
         ];
-        /*         for d in dirs {
+        for d in dirs {
             if let Cell::Piece(piece) =
                 &self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y]
             {
@@ -409,7 +428,7 @@ impl GameState {
                     }
                 }
             }
-        } */
+        }
         Result::Ok(())
     }
 }
@@ -419,7 +438,9 @@ fn main() {
     game_state.display();
 
     loop {
-        let player_move = PiecePlacement::ask_player().unwrap();
+        let player_move =
+            PiecePlacement::ask_player(&game_state.turn_order[game_state.turn_count % 2].name)
+                .unwrap();
         println!("You will attempt to make move {:?}", player_move);
 
         game_state.place_piece(player_move).unwrap();
