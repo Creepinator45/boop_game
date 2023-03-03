@@ -303,31 +303,40 @@ impl GameState {
         }
         match constrained_matches.len() {
             0 => return,
-            1 => match &self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] {
-                Cell::Piece(piece) => {
-                    self.turn_order[piece.owner].piece_pool.extend([
-                        Piece {
-                            owner: piece.owner,
-                            size: Size::Big,
-                        },
-                        Piece {
-                            owner: piece.owner,
-                            size: Size::Big,
-                        },
-                        Piece {
-                            owner: piece.owner,
-                            size: Size::Big,
-                        },
-                    ]);
-
-                    self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] =
-                        Cell::Empty;
-                    self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] =
-                        Cell::Empty;
-                    self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] =
-                        Cell::Empty;
+            1 => if let Cell::Piece(Piece{owner, size: _}) = &self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] {
+                if let Cell::Piece(Piece{owner: _, size: size0}) = self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] {
+                    if let Cell::Piece(Piece{owner: _, size: size1}) = self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] {
+                        if let Cell::Piece(Piece{owner: _, size: size2}) = self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] {
+                            if size0 == Size::Big && size1 == Size::Big && size2 == Size::Big {
+                                win(&self.turn_order[*owner].name)
+                            }
+                        }
+                    }
                 }
-                _ => panic!("match coordinate not a piece"),
+
+                self.turn_order[*owner].piece_pool.extend([
+                    Piece {
+                        owner: *owner,
+                        size: Size::Big,
+                    },
+                    Piece {
+                        owner: *owner,
+                        size: Size::Big,
+                    },
+                    Piece {
+                        owner: *owner,
+                        size: Size::Big,
+                    },
+                ]);
+
+                self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] =
+                    Cell::Empty;
+                self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] =
+                    Cell::Empty;
+                self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] =
+                    Cell::Empty;
+            } else {
+                panic!("match coordinate not a piece")
             },
             _ => {
                 self.display();
@@ -436,6 +445,9 @@ impl GameState {
     }
 }
 
+fn win(winner: &str) {
+    println!("{winner} wins!")
+}
 fn main() {
     let mut game_state = GameState::init();
     game_state.display();
