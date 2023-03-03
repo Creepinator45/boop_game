@@ -1,18 +1,20 @@
-#[derive(Debug)]
-struct ParseCoordinateError;
-#[derive(Debug)]
-struct ParseSizeError;
-#[derive(Debug)]
-enum ParsePiecePlacementError {
-    ParsePiecePlacementError,
-    ParseCoordinateError(ParseCoordinateError),
-    ParseSizeError(ParseSizeError),
-}
-
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum Size {
     Small,
     Big,
+}
+#[derive(Debug)]
+struct ParseSizeError;
+impl std::str::FromStr for Size {
+    type Err = ParseSizeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "s" | "small" => Ok(Size::Small),
+            "b" | "big" => Ok(Size::Big),
+            _ => Err(ParseSizeError),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -40,82 +42,6 @@ struct GameState {
     turn_order: [Player; 2],
     turn_count: usize,
 }
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-struct Coordinate {
-    x: usize,
-    y: usize,
-}
-
-#[derive(Debug)]
-struct PiecePlacement {
-    coordinate: Coordinate,
-    size: Size,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-struct ThreeInRow(Coordinate, Coordinate, Coordinate);
-
-impl std::str::FromStr for Size {
-    type Err = ParseSizeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "s" | "small" => Ok(Size::Small),
-            "b" | "big" => Ok(Size::Big),
-            _ => Err(ParseSizeError),
-        }
-    }
-}
-impl std::str::FromStr for Coordinate {
-    type Err = ParseCoordinateError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (x, y) = s.split_once(',').ok_or(ParseCoordinateError)?;
-        let x_fromstr = x.parse::<usize>().map_err(|_| ParseCoordinateError)?;
-        let y_fromstr = y.parse::<usize>().map_err(|_| ParseCoordinateError)?;
-
-        Ok(Coordinate {
-            x: x_fromstr,
-            y: y_fromstr,
-        })
-    }
-}
-impl std::str::FromStr for PiecePlacement {
-    type Err = ParsePiecePlacementError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (size, coordinate) = s
-            .split_once(",")
-            .ok_or(ParsePiecePlacementError::ParseSizeError(ParseSizeError))?;
-        let size_fromstr = size
-            .parse::<Size>()
-            .map_err(|_| ParsePiecePlacementError::ParseCoordinateError(ParseCoordinateError))?;
-        let coordinate_fromstr = coordinate
-            .parse::<Coordinate>()
-            .map_err(|_| ParsePiecePlacementError::ParsePiecePlacementError)?;
-
-        Ok(PiecePlacement {
-            coordinate: coordinate_fromstr,
-            size: size_fromstr,
-        })
-    }
-}
-impl PiecePlacement {
-    fn ask_player(player_name: &str) -> Result<PiecePlacement, ParsePiecePlacementError> {
-        let mut input = String::new();
-
-        println!("{} to move:", player_name);
-        std::io::stdin()
-            .read_line(&mut input)
-            .expect("Failed to read line");
-
-        let piece_placement = input.trim().parse()?;
-
-        Result::Ok(piece_placement)
-    }
-}
-
 impl GameState {
     #[rustfmt::skip]
     fn init() -> GameState {
@@ -303,41 +229,59 @@ impl GameState {
         }
         match constrained_matches.len() {
             0 => return,
-            1 => if let Cell::Piece(Piece{owner, size: _}) = &self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] {
-                if let Cell::Piece(Piece{owner: _, size: size0}) = self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] {
-                    if let Cell::Piece(Piece{owner: _, size: size1}) = self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] {
-                        if let Cell::Piece(Piece{owner: _, size: size2}) = self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] {
-                            if size0 == Size::Big && size1 == Size::Big && size2 == Size::Big {
-                                win(&self.turn_order[*owner].name)
+            1 => {
+                if let Cell::Piece(Piece { owner, size: _ }) =
+                    &self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y]
+                {
+                    if let Cell::Piece(Piece {
+                        owner: _,
+                        size: size0,
+                    }) = self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y]
+                    {
+                        if let Cell::Piece(Piece {
+                            owner: _,
+                            size: size1,
+                        }) =
+                            self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y]
+                        {
+                            if let Cell::Piece(Piece {
+                                owner: _,
+                                size: size2,
+                            }) = self.game_board[constrained_matches[0].2.x]
+                                [constrained_matches[0].2.y]
+                            {
+                                if size0 == Size::Big && size1 == Size::Big && size2 == Size::Big {
+                                    win(&self.turn_order[*owner].name)
+                                }
                             }
                         }
                     }
+
+                    self.turn_order[*owner].piece_pool.extend([
+                        Piece {
+                            owner: *owner,
+                            size: Size::Big,
+                        },
+                        Piece {
+                            owner: *owner,
+                            size: Size::Big,
+                        },
+                        Piece {
+                            owner: *owner,
+                            size: Size::Big,
+                        },
+                    ]);
+
+                    self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] =
+                        Cell::Empty;
+                    self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] =
+                        Cell::Empty;
+                    self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] =
+                        Cell::Empty;
+                } else {
+                    panic!("match coordinate not a piece")
                 }
-
-                self.turn_order[*owner].piece_pool.extend([
-                    Piece {
-                        owner: *owner,
-                        size: Size::Big,
-                    },
-                    Piece {
-                        owner: *owner,
-                        size: Size::Big,
-                    },
-                    Piece {
-                        owner: *owner,
-                        size: Size::Big,
-                    },
-                ]);
-
-                self.game_board[constrained_matches[0].0.x][constrained_matches[0].0.y] =
-                    Cell::Empty;
-                self.game_board[constrained_matches[0].1.x][constrained_matches[0].1.y] =
-                    Cell::Empty;
-                self.game_board[constrained_matches[0].2.x][constrained_matches[0].2.y] =
-                    Cell::Empty;
-            } else {
-                panic!("match coordinate not a piece")
-            },
+            }
             _ => {
                 self.display();
                 let mut position_input = String::new();
@@ -420,7 +364,11 @@ impl GameState {
 
         for d in dirs {
             match &self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] {
-                Cell::Piece(piece) if piece.size == Size::Big && piece_placement.size == Size::Small => continue,
+                Cell::Piece(piece)
+                    if piece.size == Size::Big && piece_placement.size == Size::Small =>
+                {
+                    continue
+                }
                 Cell::Piece(piece) => {
                     match self.game_board[coordinate.x - 2 + d.x * 2][coordinate.y - 2 + d.y * 2] {
                         Cell::Piece(_) => continue,
@@ -430,8 +378,10 @@ impl GameState {
                                 Cell::Empty;
                         }
                         Cell::Empty => {
-                            self.game_board[coordinate.x - 2 + d.x * 2][coordinate.y - 2 + d.y * 2] =
-                                self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y].clone();
+                            self.game_board[coordinate.x - 2 + d.x * 2]
+                                [coordinate.y - 2 + d.y * 2] = self.game_board
+                                [coordinate.x - 1 + d.x][coordinate.y - 1 + d.y]
+                                .clone();
 
                             self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] =
                                 Cell::Empty;
@@ -445,6 +395,77 @@ impl GameState {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+struct Coordinate {
+    x: usize,
+    y: usize,
+}
+#[derive(Debug)]
+struct ParseCoordinateError;
+impl std::str::FromStr for Coordinate {
+    type Err = ParseCoordinateError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (x, y) = s.split_once(',').ok_or(ParseCoordinateError)?;
+        let x_fromstr = x.parse::<usize>().map_err(|_| ParseCoordinateError)?;
+        let y_fromstr = y.parse::<usize>().map_err(|_| ParseCoordinateError)?;
+
+        Ok(Coordinate {
+            x: x_fromstr,
+            y: y_fromstr,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct PiecePlacement {
+    coordinate: Coordinate,
+    size: Size,
+}
+#[derive(Debug)]
+enum ParsePiecePlacementError {
+    ParsePiecePlacementError,
+    ParseCoordinateError(ParseCoordinateError),
+    ParseSizeError(ParseSizeError),
+}
+impl std::str::FromStr for PiecePlacement {
+    type Err = ParsePiecePlacementError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (size, coordinate) = s
+            .split_once(",")
+            .ok_or(ParsePiecePlacementError::ParseSizeError(ParseSizeError))?;
+        let size_fromstr = size
+            .parse::<Size>()
+            .map_err(|_| ParsePiecePlacementError::ParseCoordinateError(ParseCoordinateError))?;
+        let coordinate_fromstr = coordinate
+            .parse::<Coordinate>()
+            .map_err(|_| ParsePiecePlacementError::ParsePiecePlacementError)?;
+
+        Ok(PiecePlacement {
+            coordinate: coordinate_fromstr,
+            size: size_fromstr,
+        })
+    }
+}
+impl PiecePlacement {
+    fn ask_player(player_name: &str) -> Result<PiecePlacement, ParsePiecePlacementError> {
+        let mut input = String::new();
+
+        println!("{} to move:", player_name);
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+
+        let piece_placement = input.trim().parse()?;
+
+        Result::Ok(piece_placement)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct ThreeInRow(Coordinate, Coordinate, Coordinate);
+
 fn win(winner: &str) {
     println!("{winner} wins!")
 }
@@ -456,7 +477,6 @@ fn main() {
         let player_move =
             PiecePlacement::ask_player(&game_state.turn_order[game_state.turn_count % 2].name)
                 .unwrap();
-        println!("You will attempt to make move {:?}", player_move);
 
         game_state.place_piece(player_move).unwrap();
         game_state.check_board(None);
