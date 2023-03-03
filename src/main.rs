@@ -1,5 +1,7 @@
 #[derive(Debug)]
 struct ParseCoordinateError;
+#[derive(Debug)]
+struct ParseSizeError;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum Size {
@@ -47,7 +49,17 @@ struct PiecePlacement {
 
 #[derive(Debug, PartialEq, Clone)]
 struct ThreeInRow(Coordinate, Coordinate, Coordinate);
+impl std::str::FromStr for Size {
+    type Err = ParseSizeError;
 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "s" | "small" => Ok(Size::Small),
+            "b" | "big"=> Ok(Size::Big),
+            _ => Err(ParseSizeError)
+        }
+    }
+}
 impl std::str::FromStr for Coordinate {
     type Err = ParseCoordinateError;
 
