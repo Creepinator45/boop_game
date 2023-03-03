@@ -408,25 +408,28 @@ impl GameState {
             Coordinate { x: 2, y: 0 },
             Coordinate { x: 1, y: 0 },
         ];
-        for d in dirs {
-            if let Cell::Piece(piece) =
-                &self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y]
-            {
-                match self.game_board[coordinate.x - 2 + d.x * 2][coordinate.y - 2 + d.y * 2] {
-                    Cell::Piece(_) => continue,
-                    Cell::OutOfBounds => {
-                        self.turn_order[piece.owner].piece_pool.push(piece.clone());
-                        self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] =
-                            Cell::Empty;
-                    }
-                    Cell::Empty => {
-                        self.game_board[coordinate.x - 2 + d.x * 2][coordinate.y - 2 + d.y * 2] =
-                            self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y].clone();
 
-                        self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] =
-                            Cell::Empty;
+        for d in dirs {
+            match &self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] {
+                Cell::Piece(piece) if piece.size == Size::Big && piece_placement.size == Size::Small => continue,
+                Cell::Piece(piece) => {
+                    match self.game_board[coordinate.x - 2 + d.x * 2][coordinate.y - 2 + d.y * 2] {
+                        Cell::Piece(_) => continue,
+                        Cell::OutOfBounds => {
+                            self.turn_order[piece.owner].piece_pool.push(piece.clone());
+                            self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] =
+                                Cell::Empty;
+                        }
+                        Cell::Empty => {
+                            self.game_board[coordinate.x - 2 + d.x * 2][coordinate.y - 2 + d.y * 2] =
+                                self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y].clone();
+
+                            self.game_board[coordinate.x - 1 + d.x][coordinate.y - 1 + d.y] =
+                                Cell::Empty;
+                        }
                     }
                 }
+                _ => continue,
             }
         }
         Result::Ok(())
