@@ -1,23 +1,170 @@
-#[derive(Copy, Clone, PartialEq, Debug)]
+use std::{fmt, num::ParseIntError};
+
+//Error structures designed to mimic std::num::ParseIntError
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CheckCellError {
+    kind: CellErrorKind,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CellErrorKind {
+    CheckingOutOfBounds,
+    OutOfBoundsX,
+    OutOfBoundsY,
+}
+impl CheckCellError {
+    fn __description(&self) -> &str {
+        match self.kind {
+            CellErrorKind::CheckingOutOfBounds => {
+                "attempting to check out of bounds, something's wrong!"
+            }
+            CellErrorKind::OutOfBoundsX => {
+                "x value out of bounds"
+            }
+            CellErrorKind::OutOfBoundsY => {
+                "y value out of bounds"
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PlacePieceError {
+    kind: PieceErrorKind,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum PieceErrorKind {
+    OutOfBoundsX,
+    OutOfBoundsY,
+    PositionOccupied,
+    MissingPiece,
+}
+impl PlacePieceError {
+    fn __description(&self) -> &str {
+        match self.kind {
+            PieceErrorKind::OutOfBoundsX => {
+                "x value out of bounds"
+            }
+            PieceErrorKind::OutOfBoundsY => {
+                "y value out of bounds"
+            }
+            PieceErrorKind::PositionOccupied => "attempting to place piece at accupied position",
+            PieceErrorKind::MissingPiece => "attempting to place piece that is not in piece pool",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ParseCoordinateError {
+    kind: CoordinateErrorKind,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CoordinateErrorKind {
+    Empty,
+    InvalidFormat,
+    ValueErrorX(ParseIntError),
+    ValueErrorY(ParseIntError),
+}
+impl ParseCoordinateError {
+    fn __description(&self) -> &str {
+        match self.kind {
+            CoordinateErrorKind::Empty => "cannot parse coordinate from empty string",
+            CoordinateErrorKind::InvalidFormat => "invalid format, should be \"x,y\"",
+            CoordinateErrorKind::ValueErrorX(_) => {
+                "problem parsing x value"
+            }
+            CoordinateErrorKind::ValueErrorY(_) => {
+                "problem parsing y value"
+            }
+        }
+    }
+}
+impl fmt::Display for ParseCoordinateError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.__description().fmt(f)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ParseSizeError {
+    kind: SizeErrorKind,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SizeErrorKind {
+    Empty,
+    UnknownValue,
+}
+impl ParseSizeError {
+    fn __description(&self) -> &str {
+        match self.kind {
+            SizeErrorKind::Empty => "cannot parse size from empty string",
+            SizeErrorKind::UnknownValue => {
+                "unknown value. Valid sizes are \"s\",\"b\",\"small\", or \"big\""
+            }
+        }
+    }
+}
+impl fmt::Display for ParseSizeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.__description().fmt(f)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ParsePiecePlacementError {
+    kind: PiecePlacementErrorKind,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum PiecePlacementErrorKind {
+    Empty,
+    InvalidFormat,
+    ValueErrorSize(ParseSizeError),
+    ValueErrorCoordinate(ParseCoordinateError),
+}
+impl ParsePiecePlacementError {
+    fn __description(&self) -> &str {
+        match self.kind {
+            PiecePlacementErrorKind::Empty => "cannot parse piece placement from empty string",
+            PiecePlacementErrorKind::InvalidFormat => {
+                "invalid format, should be \"size,coordinate\""
+            }
+            PiecePlacementErrorKind::ValueErrorSize(_) => {
+                "problem parsing size value"
+            }
+            PiecePlacementErrorKind::ValueErrorCoordinate(_) => {
+                "problem parsing coordinate value"
+            }
+        }
+    }
+}
+impl fmt::Display for ParsePiecePlacementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.__description().fmt(f)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Eq)]
 enum Size {
     Small,
     Big,
 }
-#[derive(Debug)]
-struct ParseSizeError;
 impl std::str::FromStr for Size {
     type Err = ParseSizeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "" => Err(ParseSizeError {
+                kind: SizeErrorKind::Empty,
+            }),
             "s" | "small" => Ok(Size::Small),
             "b" | "big" => Ok(Size::Big),
-            _ => Err(ParseSizeError),
+            _ => Err(ParseSizeError {
+                kind: SizeErrorKind::UnknownValue,
+            }),
         }
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Eq)]
 struct Piece {
     owner: usize,
     size: Size,
@@ -29,7 +176,7 @@ struct Player {
     piece_pool: Vec<Piece>,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Eq)]
 enum Cell {
     OutOfBounds,
     Empty,
@@ -137,16 +284,22 @@ impl GameState {
         println!("{}", player2pieces);
     }
 
-    fn check_cell(&self, coordinate: Coordinate) -> Result<Vec<ThreeInRow>, &'static str> {
+    fn check_cell(&self, coordinate: Coordinate) -> Result<Vec<ThreeInRow>, CheckCellError> {
         if coordinate.x > 7 || coordinate.x < 2 {
-            return Result::Err("X Coordinate Out of Bounds");
+            return Result::Err(CheckCellError {
+                kind: CellErrorKind::OutOfBoundsX,
+            });
         }
         if coordinate.y > 7 || coordinate.x < 2 {
-            return Result::Err("Y Coordinate Out of Bounds");
+            return Result::Err(CheckCellError {
+                kind: CellErrorKind::OutOfBoundsY,
+            });
         }
 
         match &self.game_board[coordinate.x][coordinate.y] {
-            Cell::OutOfBounds => Result::Err("Checking Out of Bounds"),
+            Cell::OutOfBounds => Result::Err(CheckCellError {
+                kind: CellErrorKind::CheckingOutOfBounds,
+            }),
             Cell::Empty => Result::Ok(Vec::new()),
             Cell::Piece(Piece {
                 owner: current_owner,
@@ -307,7 +460,7 @@ impl GameState {
         }
     }
 
-    fn place_piece(&mut self, piece_placement: PiecePlacement) -> Result<(), &'static str> {
+    fn place_piece(&mut self, piece_placement: PiecePlacement) -> Result<(), PlacePieceError> {
         let player_index = self.turn_count % self.turn_order.len();
 
         let coordinate = Coordinate {
@@ -316,20 +469,28 @@ impl GameState {
         };
 
         if coordinate.x > 7 || coordinate.x < 2 {
-            return Result::Err("X Coordinate Out of Bounds");
+            return Result::Err(PlacePieceError {
+                kind: PieceErrorKind::OutOfBoundsX,
+            });
         }
         if coordinate.y > 7 || coordinate.y < 2 {
-            return Result::Err("Y Coordinate Out of Bounds");
+            return Result::Err(PlacePieceError {
+                kind: PieceErrorKind::OutOfBoundsY,
+            });
         }
 
         if self.game_board[coordinate.x][coordinate.y] != Cell::Empty {
-            return Result::Err("Placement Position Occupied");
+            return Result::Err(PlacePieceError {
+                kind: PieceErrorKind::PositionOccupied,
+            });
         }
         if !self.turn_order[player_index].piece_pool.contains(&Piece {
             owner: player_index,
             size: piece_placement.size,
         }) {
-            return Result::Err("Requested Piece Size Not Available");
+            return Result::Err(PlacePieceError {
+                kind: PieceErrorKind::MissingPiece,
+            });
         }
 
         self.turn_order[player_index].piece_pool.remove(
@@ -400,15 +561,19 @@ struct Coordinate {
     x: usize,
     y: usize,
 }
-#[derive(Debug)]
-struct ParseCoordinateError;
 impl std::str::FromStr for Coordinate {
     type Err = ParseCoordinateError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (x, y) = s.split_once(',').ok_or(ParseCoordinateError)?;
-        let x_fromstr = x.parse::<usize>().map_err(|_| ParseCoordinateError)?;
-        let y_fromstr = y.parse::<usize>().map_err(|_| ParseCoordinateError)?;
+        let (x, y) = s.split_once(',').ok_or(ParseCoordinateError{ kind : CoordinateErrorKind::InvalidFormat})?;
+        let x_fromstr = match x.parse::<usize>() {
+            Ok(x) => x,
+            Err(error) => return Err(ParseCoordinateError{ kind : CoordinateErrorKind::ValueErrorX(error)}),
+        };
+        let y_fromstr = match y.parse::<usize>() {
+            Ok(y) => y,
+            Err(error) => return Err(ParseCoordinateError{ kind : CoordinateErrorKind::ValueErrorY(error)}),
+        };
 
         Ok(Coordinate {
             x: x_fromstr,
@@ -422,25 +587,21 @@ struct PiecePlacement {
     coordinate: Coordinate,
     size: Size,
 }
-#[derive(Debug)]
-enum ParsePiecePlacementError {
-    ParsePiecePlacementError,
-    ParseCoordinateError(ParseCoordinateError),
-    ParseSizeError(ParseSizeError),
-}
 impl std::str::FromStr for PiecePlacement {
     type Err = ParsePiecePlacementError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (size, coordinate) = s
             .split_once(",")
-            .ok_or(ParsePiecePlacementError::ParseSizeError(ParseSizeError))?;
-        let size_fromstr = size
-            .parse::<Size>()
-            .map_err(|_| ParsePiecePlacementError::ParseCoordinateError(ParseCoordinateError))?;
-        let coordinate_fromstr = coordinate
-            .parse::<Coordinate>()
-            .map_err(|_| ParsePiecePlacementError::ParsePiecePlacementError)?;
+            .ok_or(ParsePiecePlacementError{ kind : PiecePlacementErrorKind::InvalidFormat})?;
+        let size_fromstr = match size.parse::<Size>() {
+            Ok(size) => size,
+            Err(error) => return Err(ParsePiecePlacementError{ kind: PiecePlacementErrorKind::ValueErrorSize(error)}),
+        };
+        let coordinate_fromstr = match coordinate.parse::<Coordinate>() {
+            Ok(coordinate) => coordinate,
+            Err(error) => return Err(ParsePiecePlacementError{ kind: PiecePlacementErrorKind::ValueErrorCoordinate(error)}),
+        };
 
         Ok(PiecePlacement {
             coordinate: coordinate_fromstr,
