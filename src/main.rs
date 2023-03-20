@@ -17,12 +17,8 @@ impl CheckCellError {
             CellErrorKind::CheckingOutOfBounds => {
                 "attempting to check out of bounds, something's wrong!"
             }
-            CellErrorKind::OutOfBoundsX => {
-                "x value out of bounds"
-            }
-            CellErrorKind::OutOfBoundsY => {
-                "y value out of bounds"
-            }
+            CellErrorKind::OutOfBoundsX => "x value out of bounds",
+            CellErrorKind::OutOfBoundsY => "y value out of bounds",
         }
     }
 }
@@ -41,12 +37,8 @@ enum PieceErrorKind {
 impl PlacePieceError {
     fn __description(&self) -> &str {
         match self.kind {
-            PieceErrorKind::OutOfBoundsX => {
-                "x value out of bounds"
-            }
-            PieceErrorKind::OutOfBoundsY => {
-                "y value out of bounds"
-            }
+            PieceErrorKind::OutOfBoundsX => "x value out of bounds",
+            PieceErrorKind::OutOfBoundsY => "y value out of bounds",
             PieceErrorKind::PositionOccupied => "attempting to place piece at accupied position",
             PieceErrorKind::MissingPiece => "attempting to place piece that is not in piece pool",
         }
@@ -69,12 +61,8 @@ impl ParseCoordinateError {
         match self.kind {
             CoordinateErrorKind::Empty => "cannot parse coordinate from empty string",
             CoordinateErrorKind::InvalidFormat => "invalid format, should be \"x,y\"",
-            CoordinateErrorKind::ValueErrorX(_) => {
-                "problem parsing x value"
-            }
-            CoordinateErrorKind::ValueErrorY(_) => {
-                "problem parsing y value"
-            }
+            CoordinateErrorKind::ValueErrorX(_) => "problem parsing x value",
+            CoordinateErrorKind::ValueErrorY(_) => "problem parsing y value",
         }
     }
 }
@@ -127,12 +115,8 @@ impl ParsePiecePlacementError {
             PiecePlacementErrorKind::InvalidFormat => {
                 "invalid format, should be \"size,coordinate\""
             }
-            PiecePlacementErrorKind::ValueErrorSize(_) => {
-                "problem parsing size value"
-            }
-            PiecePlacementErrorKind::ValueErrorCoordinate(_) => {
-                "problem parsing coordinate value"
-            }
+            PiecePlacementErrorKind::ValueErrorSize(_) => "problem parsing size value",
+            PiecePlacementErrorKind::ValueErrorCoordinate(_) => "problem parsing coordinate value",
         }
     }
 }
@@ -565,14 +549,24 @@ impl std::str::FromStr for Coordinate {
     type Err = ParseCoordinateError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (x, y) = s.split_once(',').ok_or(ParseCoordinateError{ kind : CoordinateErrorKind::InvalidFormat})?;
+        let (x, y) = s.split_once(',').ok_or(ParseCoordinateError {
+            kind: CoordinateErrorKind::InvalidFormat,
+        })?;
         let x_fromstr = match x.parse::<usize>() {
             Ok(x) => x,
-            Err(error) => return Err(ParseCoordinateError{ kind : CoordinateErrorKind::ValueErrorX(error)}),
+            Err(error) => {
+                return Err(ParseCoordinateError {
+                    kind: CoordinateErrorKind::ValueErrorX(error),
+                })
+            }
         };
         let y_fromstr = match y.parse::<usize>() {
             Ok(y) => y,
-            Err(error) => return Err(ParseCoordinateError{ kind : CoordinateErrorKind::ValueErrorY(error)}),
+            Err(error) => {
+                return Err(ParseCoordinateError {
+                    kind: CoordinateErrorKind::ValueErrorY(error),
+                })
+            }
         };
 
         Ok(Coordinate {
@@ -591,16 +585,24 @@ impl std::str::FromStr for PiecePlacement {
     type Err = ParsePiecePlacementError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (size, coordinate) = s
-            .split_once(",")
-            .ok_or(ParsePiecePlacementError{ kind : PiecePlacementErrorKind::InvalidFormat})?;
+        let (size, coordinate) = s.split_once(",").ok_or(ParsePiecePlacementError {
+            kind: PiecePlacementErrorKind::InvalidFormat,
+        })?;
         let size_fromstr = match size.parse::<Size>() {
             Ok(size) => size,
-            Err(error) => return Err(ParsePiecePlacementError{ kind: PiecePlacementErrorKind::ValueErrorSize(error)}),
+            Err(error) => {
+                return Err(ParsePiecePlacementError {
+                    kind: PiecePlacementErrorKind::ValueErrorSize(error),
+                })
+            }
         };
         let coordinate_fromstr = match coordinate.parse::<Coordinate>() {
             Ok(coordinate) => coordinate,
-            Err(error) => return Err(ParsePiecePlacementError{ kind: PiecePlacementErrorKind::ValueErrorCoordinate(error)}),
+            Err(error) => {
+                return Err(ParsePiecePlacementError {
+                    kind: PiecePlacementErrorKind::ValueErrorCoordinate(error),
+                })
+            }
         };
 
         Ok(PiecePlacement {
@@ -635,11 +637,38 @@ fn main() {
     game_state.display();
 
     loop {
-        let player_move =
-            PiecePlacement::ask_player(&game_state.turn_order[game_state.turn_count % 2].name)
-                .unwrap();
-
-        game_state.place_piece(player_move).unwrap();
+        let player_move = match PiecePlacement::ask_player(
+            &game_state.turn_order[game_state.turn_count % 2].name,
+        ) {
+            Ok(ok) => ok,
+            Err(ParsePiecePlacementError { kind }) => {
+                match kind {
+                    PiecePlacementErrorKind::Empty => panic!(),
+                    PiecePlacementErrorKind::InvalidFormat => {
+                        println!("Invalid format: should be \"size,x,y\"")
+                    }
+                    PiecePlacementErrorKind::ValueErrorSize(_) => {
+                        println!("Invalid Size");
+                    }
+                    PiecePlacementErrorKind::ValueErrorCoordinate(_) => {
+                        println!("Invalid Coordinate");
+                    }
+                };
+                continue;
+            }
+        };
+        match game_state.place_piece(player_move) {
+            Ok(_) => (),
+            Err(PlacePieceError { kind }) => {
+                match kind {
+                    PieceErrorKind::OutOfBoundsX => println!("Out of Bounds"),
+                    PieceErrorKind::OutOfBoundsY => println!("Out of Bounds"),
+                    PieceErrorKind::PositionOccupied => println!("Occupied Position"),
+                    PieceErrorKind::MissingPiece => println!("Piece Unavailable"),
+                }
+                continue;
+            }
+        }
         game_state.check_board(None);
         game_state.turn_count += 1;
 
